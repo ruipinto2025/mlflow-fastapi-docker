@@ -17,6 +17,15 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dependencies = [
+    "mlflow>=2.22.0",
+    "optuna>=4.3.0",
+    "pandas>=2.2.3",
+    "scikit-learn>=1.6.1",
+    "seaborn>=0.13.2",
+    "tensorflow>=2.19.0",
+    "uvicorn>=0.34.3",
+]
 
 [project.urls]
 Homepage = "https://rpinto.github.io/mlflow-fastapi-docker/"

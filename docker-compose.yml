@@ -1,0 +1,53 @@
+services:
+  mlflow:
+    image: ubuntu/mlflow:2.1.1_1.0-22.04
+    container_name: tracker_mlflow
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - mlflow-data:/mlflow/mlruns
+    command: >
+      mlflow server
+        --backend-store-uri sqlite:///mlflow/mlruns/mlflow.db
+        --default-artifact-root /mlflow/mlruns
+        --host 0.0.0.0
+        --port 5000
+
+  # Serviço de treino do modelo
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mlflow
+    command: ["python", "src/mlflow_fastapi_docker/foo.py", "--train"]
+    volumes:
+      - mlflow-data:/mlflow/mlruns
+      - ./data:/app/data
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: mlflow-fastapi-app:latest
+    container_name: mlflow_fastapi_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000" #expose FastAPI port
+    depends_on:
+      - mlflow
+    command: ["python", "src/mlflow_fastapi_docker/foo.py", "--serve"]
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - mlflow-data:/mlflow/mlruns
+      - ./data:/app/data
+
+volumes:
+  mlflow-data:

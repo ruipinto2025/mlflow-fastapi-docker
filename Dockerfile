@@ -10,12 +10,15 @@ COPY uv.lock /app/uv.lock
 COPY pyproject.toml /app/pyproject.toml
 
 # Install dependencies
-RUN uv sync --frozen --no-install-project
+RUN uv sync --locked --no-install-project --no-dev
 
 # Copy the project into the image
 COPY . /app
 
 # Sync the project
-RUN uv sync --frozen
+RUN uv sync --locked --no-dev
 
-CMD [ "python", "mlflow_fastapi_docker/foo.py" ]
+ENV PATH="/app/.venv/bin:$PATH"
+
+#CMD [ "python", "src/mlflow_fastapi_docker/foo.py" ]
+CMD [ "python", "src/mlflow_fastapi_docker/foo.py", "--serve"]
