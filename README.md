@@ -1,15 +1,15 @@
 # mlflow-fastapi-docker
 
-[![Release](https://img.shields.io/github/v/release/rpinto/mlflow-fastapi-docker)](https://img.shields.io/github/v/release/rpinto/mlflow-fastapi-docker)
-[![Build status](https://img.shields.io/github/actions/workflow/status/rpinto/mlflow-fastapi-docker/main.yml?branch=main)](https://github.com/rpinto/mlflow-fastapi-docker/actions/workflows/main.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/rpinto/mlflow-fastapi-docker/branch/main/graph/badge.svg)](https://codecov.io/gh/rpinto/mlflow-fastapi-docker)
-[![Commit activity](https://img.shields.io/github/commit-activity/m/rpinto/mlflow-fastapi-docker)](https://img.shields.io/github/commit-activity/m/rpinto/mlflow-fastapi-docker)
-[![License](https://img.shields.io/github/license/rpinto/mlflow-fastapi-docker)](https://img.shields.io/github/license/rpinto/mlflow-fastapi-docker)
+[![Release](https://img.shields.io/github/v/release/ruipinto2025/mlflow-fastapi-docker)](https://img.shields.io/github/v/release/ruipinto2025/mlflow-fastapi-docker)
+[![Build status](https://img.shields.io/github/actions/workflow/status/ruipinto2025/mlflow-fastapi-docker/main.yml?branch=main)](https://github.com/ruipinto2025/mlflow-fastapi-docker/actions/workflows/main.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/ruipinto2025/mlflow-fastapi-docker/branch/main/graph/badge.svg)](https://codecov.io/gh/ruipinto2025/mlflow-fastapi-docker)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/ruipinto2025/mlflow-fastapi-docker)](https://img.shields.io/github/commit-activity/m/ruipinto2025/mlflow-fastapi-docker)
+[![License](https://img.shields.io/github/license/ruipinto2025/mlflow-fastapi-docker)](https://img.shields.io/github/license/ruipinto2025/mlflow-fastapi-docker)
 
 This is a template repository for Python projects that use uv for their dependency management.
 
-- **Github repository**: <https://github.com/rpinto/mlflow-fastapi-docker/>
-- **Documentation** <https://rpinto.github.io/mlflow-fastapi-docker/>
+- **Github repository**: <https://github.com/ruipinto2025/mlflow-fastapi-docker/>
+- **Documentation** <https://ruipinto2025.github.io/mlflow-fastapi-docker/>
 
 ## Getting started with your project
 
@@ -21,7 +21,7 @@ First, create a repository on GitHub with the same name as this project, and the
 git init -b main
 git add .
 git commit -m "init commit"
-git remote add origin git@github.com:rpinto/mlflow-fastapi-docker.git
+git remote add origin git@github.com:ruipinto2025/mlflow-fastapi-docker.git
 git push -u origin main
 ```
 
