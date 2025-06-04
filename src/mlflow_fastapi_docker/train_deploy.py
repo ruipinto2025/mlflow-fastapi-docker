@@ -3,17 +3,20 @@ import mlflow.sklearn
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sklearn.datasets import make_regression
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_regression  # type: ignore[import]
+from sklearn.linear_model import LinearRegression  # type: ignore[import]
+from sklearn.model_selection import train_test_split  # type: ignore[import]
 
 mlflow.set_tracking_uri("http://mlflow:5000")
-mlflow.set_experiment("simple_linear_regression_experiment")
+try:
+    mlflow.set_experiment("simple_linear_regression_experiment")
+except Exception as e:
+    print(f"[WARNING] could not set MLflow experiment: {e}")
 
 MODEL_NAME = "simple_linear_regression_model"
 
 
-def train_and_log_model():
+def train_and_log_model() -> str:
     """
     Trains a simple linear regression model on synthetic data,
     logs it to the MLflow tracking server, and returns the run_id.
@@ -54,30 +57,33 @@ class PredictResponse(BaseModel):
 
 
 # Tenta carregar o modelo ao iniciar
-def load_model_from_registry(model_name: str):
+def load_model_from_registry(model_name: str) -> object:
+    """
+    Loads the latest version of `model_name` from the MLflow model registry.
+    Raises RuntimeError if loading fails.
+    """
     model_uri = f"models:/{model_name}/latest"
     try:
         model = mlflow.sklearn.load_model(model_uri)
     except Exception as e:
         raise RuntimeError from e
-    else:
-        return model
+    return model
 
 
 try:
     model = load_model_from_registry(MODEL_NAME)
 except RuntimeError as e:
     print(f"[WARNING] {e}")
-    model = None
+    model = None  # type: ignore[assignment]
 
 
-@app.get("/")
-def read_root():
+@app.get("/")  # type: ignore[assignment]
+def read_root() -> dict[str, str]:
     return {"message": "Welcome to the Simple Linear Regression API. Send POST to /predict"}
 
 
 @app.post("/predict", response_model=PredictResponse)
-def predict(req: PredictRequest):
+def predict(req: PredictRequest) -> PredictResponse:
     try:
         model = load_model_from_registry(MODEL_NAME)
     except RuntimeError as e:
