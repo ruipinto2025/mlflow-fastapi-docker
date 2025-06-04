@@ -5,7 +5,7 @@ inputs:
   python-version:
     description: "Python version to use"
     required: true
-    default: "3.12"
+    default: "3.10"
   uv-version:
     description: "uv version to use"
     required: true
@@ -22,9 +22,9 @@ runs:
       uses: astral-sh/setup-uv@v2
       with:
         version: ${{ inputs.uv-version }}
-        enable-cache: 'true'
+        enable-cache: 'false'
         cache-suffix: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
-      run: uv sync --frozen
+      run: uv sync --locked
       shell: bash
