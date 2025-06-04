@@ -5,7 +5,7 @@ site_description: This is a template repository for Python projects that use uv 
 site_author: Rui Pinto
 edit_uri: edit/main/docs/
 repo_name: ruipinto2025/mlflow-fastapi-docker
-copyright: Maintained by <a href="https://ruipinto2025.com">ruipinto2025</a>.
+copyright: Maintained by ruipinto2025</a>.
 
 nav:
   - Home: index.md
