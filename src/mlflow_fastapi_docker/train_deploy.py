@@ -28,7 +28,7 @@ def train_and_log_model() -> str:
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     with mlflow.start_run() as run:
-        run_id = run.info.run_id
+        run_id: str = run.info.run_id
 
         lr = LinearRegression()
         lr.fit(X_train, y_train)
@@ -76,10 +76,10 @@ try:
     model = load_model_from_registry(MODEL_NAME)
 except RuntimeError as e:
     print(f"[WARNING] {e}")
-    model = None  # type: ignore[assignment]
+    model = None
 
 
-@app.get("/")  # type: ignore[assignment]
+@app.get("/")
 def read_root() -> dict[str, str]:
     return {"message": "Welcome to the Simple Linear Regression API. Send POST to /predict"}
 
