@@ -22,9 +22,9 @@ runs:
       uses: astral-sh/setup-uv@v2
       with:
         version: ${{ inputs.uv-version }}
-        enable-cache: 'false'
+        enable-cache: 'true'
         cache-suffix: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
-      run: uv sync --locked
+      run: uv sync --frozen
       shell: bash
