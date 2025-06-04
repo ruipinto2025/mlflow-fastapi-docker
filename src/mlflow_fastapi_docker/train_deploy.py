@@ -1,11 +1,13 @@
+from typing import Any
+
 import mlflow
 import mlflow.sklearn
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sklearn.datasets import make_regression  # type: ignore[import]
-from sklearn.linear_model import LinearRegression  # type: ignore[import]
-from sklearn.model_selection import train_test_split  # type: ignore[import]
+from sklearn.datasets import make_regression  # type: ignore[import-untyped]
+from sklearn.linear_model import LinearRegression  # type: ignore[import-untyped]
+from sklearn.model_selection import train_test_split  # type: ignore[import-untyped]
 
 mlflow.set_tracking_uri("http://mlflow:5000")
 try:
@@ -57,7 +59,7 @@ class PredictResponse(BaseModel):
 
 
 # Tenta carregar o modelo ao iniciar
-def load_model_from_registry(model_name: str) -> object:
+def load_model_from_registry(model_name: str) -> Any:
     """
     Loads the latest version of `model_name` from the MLflow model registry.
     Raises RuntimeError if loading fails.

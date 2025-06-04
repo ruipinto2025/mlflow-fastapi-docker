@@ -108,3 +108,7 @@ def test_train_and_log_model_returns_run_id(monkeypatch):
     run_id = train_and_log_model()
     assert run_id == "FAKE_RUN_123"
 '''
+
+
+def test_dummy():
+    pass
