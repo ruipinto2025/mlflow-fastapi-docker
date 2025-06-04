@@ -9,7 +9,7 @@ You can contribute in many ways:
 
 ## Report Bugs
 
-Report bugs at https://github.com/rpinto/mlflow-fastapi-docker/issues
+Report bugs at https://github.com/ruipinto2025/mlflow-fastapi-docker/issues
 
 If you are reporting a bug, please include:
 
@@ -33,7 +33,7 @@ mlflow-fastapi-docker could always use more documentation, whether as part of th
 
 ## Submit Feedback
 
-The best way to send feedback is to file an issue at https://github.com/rpinto/mlflow-fastapi-docker/issues.
+The best way to send feedback is to file an issue at https://github.com/ruipinto2025/mlflow-fastapi-docker/issues.
 
 If you are proposing a new feature:
 

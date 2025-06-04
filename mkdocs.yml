@@ -1,11 +1,11 @@
 site_name: mlflow-fastapi-docker
-repo_url: https://github.com/rpinto/mlflow-fastapi-docker
-site_url: https://rpinto.github.io/mlflow-fastapi-docker
+repo_url: https://github.com/ruipinto2025/mlflow-fastapi-docker
+site_url: https://ruipinto2025.github.io/mlflow-fastapi-docker
 site_description: This is a template repository for Python projects that use uv for their dependency management.
 site_author: Rui Pinto
 edit_uri: edit/main/docs/
-repo_name: rpinto/mlflow-fastapi-docker
-copyright: Maintained by <a href="https://rpinto.com">rpinto</a>.
+repo_name: ruipinto2025/mlflow-fastapi-docker
+copyright: Maintained by <a href="https://ruipinto2025.com">ruipinto2025</a>.
 
 nav:
   - Home: index.md
@@ -41,7 +41,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/rpinto/mlflow-fastapi-docker
+      link: https://github.com/ruipinto2025/mlflow-fastapi-docker
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/mlflow-fastapi-docker
 

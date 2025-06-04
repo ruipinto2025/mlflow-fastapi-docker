@@ -7,7 +7,6 @@ from sklearn.datasets import make_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
-# Apontar para o tracking server definido no docker-compose
 mlflow.set_tracking_uri("http://mlflow:5000")
 mlflow.set_experiment("simple_linear_regression_experiment")
 
@@ -107,6 +106,6 @@ if __name__ == "__main__":
         run_id = train_and_log_model()
         print(f"Training complete. MLflow Run ID: {run_id}")
     elif args.serve:
-        uvicorn.run("mlflow_fastapi_docker.foo:app", host="0.0.0.0", port=8000)  # noqa: S104
+        uvicorn.run("mlflow_fastapi_docker.train_deploy:app", host="0.0.0.0", port=8080)  # noqa: S104
     else:
         print("Use --train to train or --serve to serve the app.")

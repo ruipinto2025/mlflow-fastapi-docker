@@ -1,1 +1,1 @@
-::: mlflow_fastapi_docker.foo
+::: mlflow_fastapi_docker.train_deploy
