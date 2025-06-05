@@ -1,5 +1,4 @@
 import time
-from collections.abc import Sequence
 from typing import Any
 
 import mlflow
@@ -112,7 +111,7 @@ def add_noise(
     return df_noisy
 
 
-def nested_cross_validate(X: np.ndarray, y: Sequence[int] | np.ndarray) -> tuple[list[dict], dict]:
+def nested_cross_validate(X: np.ndarray, y: np.ndarray) -> tuple[list[dict], dict]:
     """
     Performs a 5-fold outer cross-validation using the Local Outlier Factor (LOF)
     model for anomaly detection.
@@ -121,7 +120,7 @@ def nested_cross_validate(X: np.ndarray, y: Sequence[int] | np.ndarray) -> tuple
 
     Args:
         X (np.ndarray): Feature matrix of shape (n_samples, n_features).
-        y (Sequence[int] | np.ndarray): Binary target array of shape (n_samples,), where 0 indicates normal instances and 1 indicates anomalies.
+        y (np.ndarray): Binary target array of shape (n_samples,), where 0 indicates normal instances and 1 indicates anomalies.
 
     Returns:
         tuple[list[dict], dict] containing a list of dictionaries, each containing results from one fold and a dictionary corresponding to the best fold, selected by highest AUROC (with AUPRC as tie-breaker).
@@ -194,7 +193,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
     df = add_noise(df, noise_pct, noise_std, noise_type, feature_cols)
 
     X = df[feature_cols].values
-    y = df["Anomaly_Label"].tolist()
+    y = np.asarray(df["Anomaly_Label"].tolist(), dtype=int)
 
     with mlflow.start_run() as run:
         run_id: str = run.info.run_id
