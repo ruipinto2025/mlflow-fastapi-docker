@@ -20,5 +20,4 @@ RUN uv sync --locked --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-#CMD [ "python", "src/mlflow_fastapi_docker/train_deploy.py" ]
 CMD [ "python", "src/mlflow_fastapi_docker/train_deploy.py", "--serve"]
