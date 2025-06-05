@@ -21,8 +21,7 @@ try:
 except Exception as e:
     print(f"[WARNING] could not set MLflow experiment: {e}")
 
-
-MODEL_NAME = "occ_anomaly_detector"
+model_name = "lof"
 
 
 def load_and_preprocess_data(filename: str) -> tuple[pd.DataFrame, StandardScaler, list[str]]:
@@ -113,7 +112,7 @@ def add_noise(
     return df_noisy
 
 
-def nested_cross_validate(X: np.ndarray, y: Sequence[int]) -> tuple[list[dict], dict]:
+def nested_cross_validate(X: np.ndarray, y: Sequence[int] | np.ndarray) -> tuple[list[dict], dict]:
     """
     Performs a 5-fold outer cross-validation using the Local Outlier Factor (LOF)
     model for anomaly detection.
@@ -122,11 +121,13 @@ def nested_cross_validate(X: np.ndarray, y: Sequence[int]) -> tuple[list[dict], 
 
     Args:
         X (np.ndarray): Feature matrix of shape (n_samples, n_features).
-        y (Sequence[int]): Binary target array of shape (n_samples,), where 0 indicates normal instances and 1 indicates anomalies.
+        y (Sequence[int] | np.ndarray): Binary target array of shape (n_samples,), where 0 indicates normal instances and 1 indicates anomalies.
 
     Returns:
         tuple[list[dict], dict] containing a list of dictionaries, each containing results from one fold and a dictionary corresponding to the best fold, selected by highest AUROC (with AUPRC as tie-breaker).
     """
+    y = np.asarray(y, dtype=int)
+
     print("[INFO] Starting Outer Cross Validation with 5 folds...")
     print(f"[INFO] Dataset: {X.shape[0]} samples, {X.shape[1]} features")
     skf_outer = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -329,7 +330,6 @@ class PredictResponse(BaseModel):
     prediction: int  # 0 for normal, 1 for anomaly
 
 
-# Tenta carregar o modelo ao iniciar
 def load_model_from_registry(model_name: str) -> Any:
     """
     Loads the latest version of `model_name` from the MLflow model registry.
@@ -349,7 +349,7 @@ def load_model_from_registry(model_name: str) -> Any:
 
 
 try:
-    model = load_model_from_registry(MODEL_NAME)
+    model = load_model_from_registry(model_name)
 except RuntimeError as e:
     print(f"[WARNING] {e}")
     model = None
@@ -363,7 +363,7 @@ def read_root() -> dict[str, str]:
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest) -> PredictResponse:
     try:
-        model = load_model_from_registry(MODEL_NAME)
+        model = load_model_from_registry(model_name)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail="Could not load model") from e
 
@@ -446,7 +446,6 @@ if __name__ == "__main__":
     noise_pct = 0.05
     noise_std = 1.5
     noise_type = "laplace"
-    model_name = "lof"
     if args.train:
         run_id = train_and_log_model(noise_pct, noise_std, noise_type, model_name)
         print(f"Training complete. MLflow Run ID: {run_id}")
