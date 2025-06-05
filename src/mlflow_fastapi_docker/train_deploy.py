@@ -1,4 +1,6 @@
 import time
+from collections.abc import Sequence
+from typing import Any
 
 import mlflow
 import mlflow.sklearn
@@ -60,7 +62,6 @@ def add_noise(
     Args:
         df: Input DataFrame
         noise_pct: Percentage of rows to add noise to
-        noise_mean: Mean of the noise distribution
         noise_std: Standard deviation of the noise distribution
         noise_type: Type of noise to add (gaussian, laplace, poisson, etc.)
         feature_cols: Feature columns to be added noise
@@ -115,7 +116,7 @@ def add_noise(
     return df_noisy
 
 
-def nested_cross_validate(X: np.ndarray, y: np.ndarray) -> tuple[list[dict], dict]:
+def nested_cross_validate(X: np.ndarray, y: Sequence[int]) -> tuple[list[dict], dict]:
     """
     Performs a 5-fold outer cross-validation using the Local Outlier Factor (LOF)
     model for anomaly detection.
@@ -127,11 +128,11 @@ def nested_cross_validate(X: np.ndarray, y: np.ndarray) -> tuple[list[dict], dic
 
     Args:
         X (np.ndarray): Feature matrix of shape (n_samples, n_features).
-        y (np.ndarray): Binary target array of shape (n_samples,), where 0 indicates
+        y (Sequence[int]): Binary target array of shape (n_samples,), where 0 indicates
                         normal instances and 1 indicates anomalies.
 
     Returns:
-        Tuple[List[dict], dict] containing:
+        tuple[list[dict], dict] containing:
             - fold_results: A list of dictionaries, each containing results from one fold:
                 {
                     "fold": int,             # Fold index (1 to 5)
@@ -157,7 +158,7 @@ def nested_cross_validate(X: np.ndarray, y: np.ndarray) -> tuple[list[dict], dic
         X_te, y_te = X[test_i], y[test_i]
 
         # without optimization for now
-        best_params = {}
+        best_params: dict[str, Any] = {}
 
         lof = LocalOutlierFactor(novelty=True, n_neighbors=20)
 
@@ -211,7 +212,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
     df = add_noise(df, noise_pct, noise_std, noise_type, feature_cols)
 
     X = df[feature_cols].values
-    y = df["Anomaly_Label"].values
+    y = df["Anomaly_Label"].tolist()
 
     with mlflow.start_run() as run:
         run_id: str = run.info.run_id
@@ -348,7 +349,7 @@ class PredictResponse(BaseModel):
 
 
 # Tenta carregar o modelo ao iniciar
-def load_model_from_registry(model_name: str) -> any:
+def load_model_from_registry(model_name: str) -> Any:
     """
     Loads the latest version of `model_name` from the MLflow model registry.
     Raises RuntimeError if loading fails.

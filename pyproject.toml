@@ -18,9 +18,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
+    "microsoft-python-type-stubs",
     "mlflow>=2.22.0",
     "optuna>=4.3.0",
     "pandas>=2.2.3",
+    "pandas-stubs>=2.2.2.240807",
     "pydantic>=2.11.5",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
@@ -116,3 +118,6 @@ ignore = [
 
 [tool.ruff.format]
 preview = true
+
+[tool.uv.sources]
+microsoft-python-type-stubs = { git = "https://github.com/microsoft/python-type-stubs.git" }
