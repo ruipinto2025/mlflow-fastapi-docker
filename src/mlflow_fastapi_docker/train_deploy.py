@@ -67,10 +67,7 @@ def add_noise(
         feature_cols: Feature columns to be added noise
 
     Returns:
-        A new DataFrame where:
-          - `noise_pct * len(df)` randomly chosen rows have had their feature values perturbed
-            according to `noise_type` & `noise_std`.
-          - For those rows 'Anomaly_Label' is set to 1.
+        A new DataFrame where `noise_pct * len(df)` randomly chosen rows have had their feature values perturbed according to `noise_type` & `noise_std`. For those rows 'Anomaly_Label' is set to 1.
     """
     # add seed for reproducibility
     rng = np.random.RandomState(0)
@@ -121,30 +118,14 @@ def nested_cross_validate(X: np.ndarray, y: Sequence[int]) -> tuple[list[dict], 
     Performs a 5-fold outer cross-validation using the Local Outlier Factor (LOF)
     model for anomaly detection.
 
-    In each fold:
-    - The model is trained only on the normal class (where y == 0).
-    - LOF is used with fixed parameters (no hyperparameter optimization).
-    - Performance is evaluated using AUROC and AUPRC on the test fold.
+    In each fold, the model is trained only on the normal class (where y == 0). LOF is used with fixed parameters (no hyperparameter optimization). Performance is evaluated using AUROC and AUPRC on the test fold.
 
     Args:
         X (np.ndarray): Feature matrix of shape (n_samples, n_features).
-        y (Sequence[int]): Binary target array of shape (n_samples,), where 0 indicates
-                        normal instances and 1 indicates anomalies.
+        y (Sequence[int]): Binary target array of shape (n_samples,), where 0 indicates normal instances and 1 indicates anomalies.
 
     Returns:
-        tuple[list[dict], dict] containing:
-            - fold_results: A list of dictionaries, each containing results from one fold:
-                {
-                    "fold": int,             # Fold index (1 to 5)
-                    "auroc": float,          # Area Under the ROC Curve
-                    "auprc": float,          # Area Under the Precision-Recall Curve
-                    "fit_time": float,       # Time taken to train the model
-                    "score_time": float,     # Time taken to compute anomaly scores
-                    "model": fitted object,  # Trained LOF model
-                    "params": dict           # Model parameters (empty in this case)
-                }
-            - best: A dictionary corresponding to the best fold, selected by highest AUROC
-              (with AUPRC as tie-breaker).
+        tuple[list[dict], dict] containing a list of dictionaries, each containing results from one fold and a dictionary corresponding to the best fold, selected by highest AUROC (with AUPRC as tie-breaker).
     """
     print("[INFO] Starting Outer Cross Validation with 5 folds...")
     print(f"[INFO] Dataset: {X.shape[0]} samples, {X.shape[1]} features")
@@ -193,11 +174,11 @@ def nested_cross_validate(X: np.ndarray, y: Sequence[int]) -> tuple[list[dict], 
 
 def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, model_name: str) -> str:
     """
-    1) Loads “normal” Cubestocker data.
-    2) Injects synthetic noise → anomalies.
-    3) Runs a 5-fold cross-validation of LOF (novelty-mode) and logs per-fold metrics + aggregated metrics to MLflow.
-    4) Registers the best-trained LOF model inside a pipeline that includes ColumnTransformer (selector + scaler) → LOF.
-    5) Returns the MLflow run_id.
+    Loads “normal” Cubestocker data.
+    Injects synthetic noise → anomalies.
+    Runs a 5-fold cross-validation of LOF (novelty-mode) and logs per-fold metrics + aggregated metrics to MLflow.
+    Registers the best-trained LOF model inside a pipeline that includes ColumnTransformer (selector + scaler) → LOF.
+    Returns the MLflow run_id.
 
     Args:
         noise_pct: Percentage of rows to add noise to
