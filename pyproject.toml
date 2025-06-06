@@ -31,9 +31,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://rpinto.github.io/mlflow-fastapi-docker/"
-Repository = "https://github.com/rpinto/mlflow-fastapi-docker"
-Documentation = "https://rpinto.github.io/mlflow-fastapi-docker/"
+Homepage = "https://ruipinto2025.github.io/mlflow-fastapi-docker/"
+Repository = "https://github.com/ruipinto2025/mlflow-fastapi-docker"
+Documentation = "https://ruipinto2025.github.io/mlflow-fastapi-docker/"
 
 [dependency-groups]
 dev = [

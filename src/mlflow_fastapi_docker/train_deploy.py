@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from mlflow.models.signature import infer_signature
+from mlflow.tracking import MlflowClient
 from pydantic import BaseModel
 from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold
@@ -175,13 +176,31 @@ def nested_cross_validate(X: np.ndarray, y: np.ndarray) -> tuple[list[dict], dic
     return fold_results, best
 
 
+class NoRunsFoundError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__("No runs found in experiment to select best from.")
+
+
+class RegisteredModelVersionNotFoundError(RuntimeError):
+    def __init__(self, run_id: str):
+        super().__init__(f"Could not find a registered model version for run_id {run_id}.")
+
+
+def _raise_no_runs_error() -> None:
+    raise NoRunsFoundError()
+
+
+def _raise_version_not_found_error(run_id: str) -> None:
+    raise RegisteredModelVersionNotFoundError(run_id)
+
+
 def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, model_name: str) -> str:
     """
     Loads “normal” Cubestocker data.
     Injects synthetic noise → anomalies.
     Runs a 5-fold cross-validation of LOF (novelty-mode) and logs per-fold metrics + aggregated metrics to MLflow.
     Registers the best-trained LOF model inside a pipeline that includes scaler + LOF.
-    Returns the MLflow run_id.
+    Finds that best run across all runs (by cv_mean_auroc, tiebreak cv_mean_auprc), then assigns alias “production” to the corresponding model version (new API).
 
     Args:
         noise_pct: Percentage of rows to add noise to
@@ -189,7 +208,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         noise_type: Type of noise to add (gaussian, laplace, poisson, etc.)
         model_name: Name of the model.
     Returns:
-        The Mlflow run id.
+        Run_id of the current training run.
     """
 
     df, scaler, feature_cols = load_and_preprocess_data("TRACKING_20250328_a_20250403")
@@ -200,6 +219,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
 
     with mlflow.start_run() as run:
         run_id: str = run.info.run_id
+        experiment_id = run.info.experiment_id
 
         folds, best = nested_cross_validate(X, y)
 
@@ -252,6 +272,52 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         )
 
         print(f"Model trained and logged. Run ID: {run_id}")
+
+        try:
+            client = MlflowClient()
+
+            # Find the single best run across all runs in this experiment
+            runs = client.search_runs(
+                experiment_ids=[experiment_id],
+                order_by=["metrics.cv_mean_auroc DESC", "metrics.cv_mean_auprc DESC"],
+                max_results=1,
+            )
+
+            if not runs:
+                print("[INFO] No runs found matching the criteria.")
+                best_run_id = None
+                best_auroc = None
+                best_auprc = None
+            else:
+                best_run = runs[0]
+                best_run_id = best_run.info.run_id
+                best_auroc = best_run.data.metrics.get("cv_mean_auroc")
+                best_auprc = best_run.data.metrics.get("cv_mean_auprc")
+                print(f"[INFO] Best run: {best_run_id} (cv_mean_auroc={best_auroc}, cv_mean_auprc={best_auprc})")
+
+                # Determine which registered-model versions correspond to best_run_id
+                versions = client.search_model_versions(f"name='{model_name}'")
+                best_version_num = None
+                for v in versions:
+                    if v.run_id == best_run_id:
+                        best_version_num = v.version
+                        break
+
+                if best_version_num is None:
+                    _raise_version_not_found_error(best_run_id)
+
+                # Archive previous Production Model, then assign Production to best_version_num.
+                for v in versions:
+                    if v.current_stage == "Production":
+                        client.transition_model_version_stage(name=model_name, version=v.version, stage="Archived")
+                        break
+
+                # Transition the best version to "Production"
+                client.transition_model_version_stage(name=model_name, version=best_version_num, stage="Production")
+                print(f"[INFO] Transitioned version {best_version_num} to 'Production' stage")
+        except Exception as e:
+            print(f"[WARNING] Failed to transition model to 'Production': {e}")
+
         return run_id
 
 
@@ -278,7 +344,7 @@ app = FastAPI(lifespan=lifespan, title="LocalOutlierFactor API")
 
 
 class PredictRequest(BaseModel):
-    """Request model with all 50 feature columns (53 original - 3 dropped columns)"""
+    """Request model with all 53 original columns"""
 
     device_id: int
 
@@ -361,22 +427,42 @@ class PredictResponse(BaseModel):
     prediction: int  # 0 for normal, 1 for anomaly
 
 
+class ModelLoadError(RuntimeError):
+    def __init__(self, version: str, original_exception: Exception):
+        message = f"Failed to load model version {version}: {original_exception}"
+        super().__init__(message)
+        self.version = version
+        self.original_exception = original_exception
+
+
+class NoProductionModelError(RuntimeError):
+    def __init__(self, model_name: str):
+        message = f"No model version in 'Production' stage for model '{model_name}'"
+        super().__init__(message)
+        self.model_name = model_name
+
+
 def load_model_from_registry(model_name: str) -> Any:
     """
-    Loads the latest version of `model_name` from the MLflow model registry.
-    Raises RuntimeError if loading fails.
+    Loads the version of `model_name` that is currently in the 'Production' stage.
+    Raises RuntimeError if no version is in 'Production' or if loading fails.
 
     Args:
         model_name: Name of the OCC model
     Returns:
-        The latest fitted model.
+        The model in the 'Production' stage
     """
-    model_uri = f"models:/{model_name}/latest"
-    try:
-        model = mlflow.sklearn.load_model(model_uri)
-    except Exception as e:
-        raise RuntimeError from e
-    return model
+    client = MlflowClient()
+    versions = client.search_model_versions(f"name='{model_name}'")
+    for v in versions:
+        if v.current_stage == "Production":
+            model_uri = f"models:/{model_name}/{v.version}"
+            try:
+                model = mlflow.sklearn.load_model(model_uri)
+            except Exception as e:
+                raise ModelLoadError(v.version, e) from e
+            return model
+    raise NoProductionModelError(model_name)
 
 
 @app.get("/")
@@ -449,8 +535,11 @@ def predict(req: PredictRequest) -> PredictResponse:
     }
 
     input_df = pd.DataFrame([input_data])
-
     input_df = input_df.drop(columns=["device_id", "date", "new_stamp"])
+
+    scaler = model.named_steps["scaler"]
+    feat_order = list(scaler.feature_names_in_)
+    input_df = input_df[feat_order]
 
     try:
         # Get prediction (-1 for anomaly, 1 for normal)
