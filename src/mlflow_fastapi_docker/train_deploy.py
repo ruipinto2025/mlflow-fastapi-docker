@@ -37,12 +37,9 @@ def load_and_preprocess_data(filename: str) -> tuple[pd.DataFrame, StandardScale
     Returns:
         Preprocessed Dataframe, the scaler, and a list of features used for training.
     """
-    df = pd.read_csv(f"data/{filename}.csv", delimiter=";", low_memory=False)
+    df = pd.read_csv(f"data/{filename}.csv")
     df = df.drop(columns=["new_stamp", "device_id", "date"], errors="ignore")
     df["Anomaly_Label"] = 0
-    # convert object columns to float
-    obj_cols = df.select_dtypes(include=["object"]).columns
-    df[obj_cols] = df[obj_cols].apply(lambda x: pd.to_numeric(x.str.replace(",", ".", regex=True), errors="coerce"))
 
     feature_cols = [c for c in df.columns if c != "Anomaly_Label"]
     scaler = StandardScaler()
@@ -211,7 +208,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         Run_id of the current training run.
     """
 
-    df, scaler, feature_cols = load_and_preprocess_data("TRACKING_20250328_a_20250403")
+    df, scaler, feature_cols = load_and_preprocess_data("TRACKING_20250502_a_20250529")
     df = add_noise(df, noise_pct, noise_std, noise_type, feature_cols)
 
     X = df[feature_cols].values
