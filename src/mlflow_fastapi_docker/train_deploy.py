@@ -1,4 +1,6 @@
 import time
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Any
 
 import mlflow
@@ -21,6 +23,7 @@ except Exception as e:
     print(f"[WARNING] could not set MLflow experiment: {e}")
 
 model_name = "lof"
+model = None
 
 
 def load_and_preprocess_data(filename: str) -> tuple[pd.DataFrame, StandardScaler, list[str]]:
@@ -177,7 +180,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
     Loads “normal” Cubestocker data.
     Injects synthetic noise → anomalies.
     Runs a 5-fold cross-validation of LOF (novelty-mode) and logs per-fold metrics + aggregated metrics to MLflow.
-    Registers the best-trained LOF model inside a pipeline that includes ColumnTransformer (selector + scaler) → LOF.
+    Registers the best-trained LOF model inside a pipeline that includes scaler + LOF.
     Returns the MLflow run_id.
 
     Args:
@@ -199,6 +202,11 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         run_id: str = run.info.run_id
 
         folds, best = nested_cross_validate(X, y)
+
+        # log noise parameters
+        mlflow.log_param("noise_pct", noise_pct)
+        mlflow.log_param("noise_std", noise_std)
+        mlflow.log_param("noise_type", noise_type)
 
         # log metrics per fold
         aurocs, auprcs, fit_times, score_times = [], [], [], []
@@ -247,12 +255,32 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         return run_id
 
 
+# ------------FastAPI app---------------
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    global model
+    # --- Startup: load the model once before handling any requests ---
+    try:
+        model = load_model_from_registry(model_name)
+    except RuntimeError as e:
+        # If loading fails, leave model = None so /predict returns 503
+        print(f"[WARNING] {e}")
+        model = None
+
+    yield  # <- app is now ready to receive requests
+
+    # --- Shutdown: cleanup if needed (e.g., release resources) ---
+    model = None
+
+
 # FastAPI app
-app = FastAPI(title="LocalOutlierFactor API")
+app = FastAPI(lifespan=lifespan, title="LocalOutlierFactor API")
 
 
 class PredictRequest(BaseModel):
     """Request model with all 50 feature columns (53 original - 3 dropped columns)"""
+
+    device_id: int
 
     # CR1 Motor X measurements
     cr1_mtx_temperature: float
@@ -322,6 +350,10 @@ class PredictRequest(BaseModel):
     cr1_to_exit_full: float
     cr2_to_exit_full: float
 
+    # time
+    date: int
+    new_stamp: int
+
 
 class PredictResponse(BaseModel):
     """Response model for anomaly detection: 0 = normal, 1 = anomaly"""
@@ -347,13 +379,6 @@ def load_model_from_registry(model_name: str) -> Any:
     return model
 
 
-try:
-    model = load_model_from_registry(model_name)
-except RuntimeError as e:
-    print(f"[WARNING] {e}")
-    model = None
-
-
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"message": "Welcome to the Local Outlier Factor API. Send POST to /predict"}
@@ -361,13 +386,14 @@ def read_root() -> dict[str, str]:
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest) -> PredictResponse:
-    try:
-        model = load_model_from_registry(model_name)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail="Could not load model") from e
+    global model
+    if model is None:
+        # If startup-time loading failed (or model not registered), return 503
+        raise HTTPException(status_code=503, detail="Model is not available")
 
     # Convert request to DataFrame with correct column order
     input_data = {
+        "device_id": req.device_id,
         "cr1_mtx_temperature": req.cr1_mtx_temperature,
         "cr1_mtx_current": req.cr1_mtx_current,
         "cr1_mtx_power": req.cr1_mtx_power,
@@ -418,9 +444,13 @@ def predict(req: PredictRequest) -> PredictResponse:
         "cr2_has_carrier": req.cr2_has_carrier,
         "cr1_to_exit_full": req.cr1_to_exit_full,
         "cr2_to_exit_full": req.cr2_to_exit_full,
+        "date": req.date,
+        "new_stamp": req.new_stamp,
     }
 
     input_df = pd.DataFrame([input_data])
+
+    input_df = input_df.drop(columns=["device_id", "date", "new_stamp"])
 
     try:
         # Get prediction (-1 for anomaly, 1 for normal)
