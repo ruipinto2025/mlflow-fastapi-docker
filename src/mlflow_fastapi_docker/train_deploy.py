@@ -208,7 +208,7 @@ def train_and_log_model(noise_pct: float, noise_std: float, noise_type: str, mod
         Run_id of the current training run.
     """
 
-    df, scaler, feature_cols = load_and_preprocess_data("TRACKING_20250502_a_20250529")
+    df, scaler, feature_cols = load_and_preprocess_data("TRACKING_20250502_a_20250508")
     df = add_noise(df, noise_pct, noise_std, noise_type, feature_cols)
 
     X = df[feature_cols].values
@@ -467,83 +467,25 @@ def read_root() -> dict[str, str]:
     return {"message": "Welcome to the Local Outlier Factor API. Send POST to /predict"}
 
 
-@app.post("/predict", response_model=PredictResponse)
-def predict(req: PredictRequest) -> PredictResponse:
+@app.post("/predict", response_model=list[PredictResponse])
+def predict(reqs: list[PredictRequest]) -> list[PredictResponse]:
     global model
     if model is None:
         # If startup-time loading failed (or model not registered), return 503
         raise HTTPException(status_code=503, detail="Model is not available")
 
-    # Convert request to DataFrame with correct column order
-    input_data = {
-        "device_id": req.device_id,
-        "cr1_mtx_temperature": req.cr1_mtx_temperature,
-        "cr1_mtx_current": req.cr1_mtx_current,
-        "cr1_mtx_power": req.cr1_mtx_power,
-        "cr1_mtx_speed": req.cr1_mtx_speed,
-        "cr1_mtx_torque": req.cr1_mtx_torque,
-        "cr1_mtx_position": req.cr1_mtx_position,
-        "cr1_mty_temperature": req.cr1_mty_temperature,
-        "cr1_mty_current": req.cr1_mty_current,
-        "cr1_mty_power": req.cr1_mty_power,
-        "cr1_mty_speed": req.cr1_mty_speed,
-        "cr1_mty_torque": req.cr1_mty_torque,
-        "cr1_mty_position": req.cr1_mty_position,
-        "cr1_mtz_temperature": req.cr1_mtz_temperature,
-        "cr1_mtz_current": req.cr1_mtz_current,
-        "cr1_mtz_power": req.cr1_mtz_power,
-        "cr1_mtz_speed": req.cr1_mtz_speed,
-        "cr1_mtz_torque": req.cr1_mtz_torque,
-        "cr1_mtz_position": req.cr1_mtz_position,
-        "cr1_y_beltvibration_xangle": req.cr1_y_beltvibration_xangle,
-        "cr1_y_beltvibration_yangle": req.cr1_y_beltvibration_yangle,
-        "cr1_y_load": req.cr1_y_load,
-        "cr2_mtx_temperature": req.cr2_mtx_temperature,
-        "cr2_mtx_current": req.cr2_mtx_current,
-        "cr2_mtx_power": req.cr2_mtx_power,
-        "cr2_mtx_speed": req.cr2_mtx_speed,
-        "cr2_mtx_torque": req.cr2_mtx_torque,
-        "cr2_mtx_position": req.cr2_mtx_position,
-        "cr2_mty_temperature": req.cr2_mty_temperature,
-        "cr2_mty_current": req.cr2_mty_current,
-        "cr2_mty_power": req.cr2_mty_power,
-        "cr2_mty_speed": req.cr2_mty_speed,
-        "cr2_mty_torque": req.cr2_mty_torque,
-        "cr2_mty_position": req.cr2_mty_position,
-        "cr2_mtz_temperature": req.cr2_mtz_temperature,
-        "cr2_mtz_current": req.cr2_mtz_current,
-        "cr2_mtz_power": req.cr2_mtz_power,
-        "cr2_mtz_speed": req.cr2_mtz_speed,
-        "cr2_mtz_torque": req.cr2_mtz_torque,
-        "cr2_mtz_position": req.cr2_mtz_position,
-        "cr2_y_beltvibration_xangle": req.cr2_y_beltvibration_xangle,
-        "cr2_y_beltvibration_yangle": req.cr2_y_beltvibration_yangle,
-        "cr2_y_load": req.cr2_y_load,
-        "cr1_mode": req.cr1_mode,
-        "cr2_mode": req.cr2_mode,
-        "cr1_has_request": req.cr1_has_request,
-        "cr2_has_request": req.cr2_has_request,
-        "cr1_has_carrier": req.cr1_has_carrier,
-        "cr2_has_carrier": req.cr2_has_carrier,
-        "cr1_to_exit_full": req.cr1_to_exit_full,
-        "cr2_to_exit_full": req.cr2_to_exit_full,
-        "date": req.date,
-        "new_stamp": req.new_stamp,
-    }
+    records = [r.dict() for r in reqs]
+    df = pd.DataFrame(records).drop(columns=["device_id", "date", "new_stamp"])
 
-    input_df = pd.DataFrame([input_data])
-    input_df = input_df.drop(columns=["device_id", "date", "new_stamp"])
-
-    scaler = model.named_steps["scaler"]
-    feat_order = list(scaler.feature_names_in_)
-    input_df = input_df[feat_order]
+    feat_order = list(model.named_steps["scaler"].feature_names_in_)
+    input_df = df[feat_order]
 
     try:
         # Get prediction (-1 for anomaly, 1 for normal)
-        pred = model.predict(input_df)
+        raw_preds = model.predict(input_df)
+
         # Convert to 0/1 format: -1 (anomaly) -> 1, 1 (normal) -> 0
-        prediction = 1 if pred[0] == -1 else 0
-        return PredictResponse(prediction=prediction)
+        return [PredictResponse(prediction=(1 if p == -1 else 0)) for p in raw_preds]
     except Exception as e:
         raise HTTPException(status_code=500, detail="Prediction error") from e
 
