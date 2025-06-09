@@ -37,9 +37,12 @@ def load_and_preprocess_data(filename: str) -> tuple[pd.DataFrame, StandardScale
     Returns:
         Preprocessed Dataframe, the scaler, and a list of features used for training.
     """
-    df = pd.read_csv(f"data/{filename}.csv")
+    df = pd.read_csv(f"data/{filename}.csv", delimiter=";", low_memory=False)
     df = df.drop(columns=["new_stamp", "device_id", "date"], errors="ignore")
     df["Anomaly_Label"] = 0
+
+    obj_cols = df.select_dtypes(include=["object"]).columns
+    df[obj_cols] = df[obj_cols].apply(lambda x: pd.to_numeric(x.str.replace(",", ".", regex=True), errors="coerce"))
 
     feature_cols = [c for c in df.columns if c != "Anomaly_Label"]
     scaler = StandardScaler()
