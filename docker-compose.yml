@@ -16,20 +16,6 @@ services:
         --host 0.0.0.0
         --port 5000
 
-  # Serviço de treino do modelo
-  train:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      - mlflow
-    command: ["python", "src/mlflow_fastapi_docker/train_deploy.py", "--train"]
-    volumes:
-      - mlflow-data:/mlflow/mlruns
-      - ./data:/app/data
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-
   app:
     build:
       context: .
@@ -48,6 +34,20 @@ services:
     volumes:
       - mlflow-data:/mlflow/mlruns
       - ./data:/app/data
+
+  # Model training service
+  train:
+    pull_policy: never
+    image: mlflow-fastapi-app:latest
+    container_name: mlflow_trainer
+    depends_on:
+      - mlflow
+    command: ["python", "src/mlflow_fastapi_docker/train_deploy.py", "--train"]
+    volumes:
+      - mlflow-data:/mlflow/mlruns
+      - ./data:/app/data
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
 
 volumes:
   mlflow-data:
