@@ -18,6 +18,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
+    "fastparquet>=2024.11.0",
+    "imblearn>=0.0",
     "microsoft-python-type-stubs",
     "mlflow>=2.22.0",
     "optuna>=4.3.0",
@@ -26,8 +28,8 @@ dependencies = [
     "pydantic>=2.11.5",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
-    "tensorflow>=2.19.0",
     "uvicorn>=0.34.3",
+    "xgboost>=2.1.4",
 ]
 
 [project.urls]
@@ -121,3 +123,7 @@ preview = true
 
 [tool.uv.sources]
 microsoft-python-type-stubs = { git = "https://github.com/microsoft/python-type-stubs.git" }
+
+[[tool.mypy.overrides]]
+module = ["imblearn.*"]
+ignore_missing_imports = true
