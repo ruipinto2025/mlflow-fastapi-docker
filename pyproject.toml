@@ -19,13 +19,13 @@ classifiers = [
 ]
 dependencies = [
     "fastparquet>=2024.11.0",
-    "imblearn>=0.0",
     "microsoft-python-type-stubs",
     "mlflow>=2.22.0",
     "optuna>=4.3.0",
     "pandas>=2.2.3",
     "pandas-stubs>=2.2.2.240807",
     "pydantic>=2.11.5",
+    "river>=0.20.1",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",
     "uvicorn>=0.34.3",
@@ -125,5 +125,5 @@ preview = true
 microsoft-python-type-stubs = { git = "https://github.com/microsoft/python-type-stubs.git" }
 
 [[tool.mypy.overrides]]
-module = ["imblearn.*"]
+module = ["generate_dataset.*"]
 ignore_missing_imports = true

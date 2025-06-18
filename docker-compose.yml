@@ -17,18 +17,17 @@ services:
         --port 5000
 
   app:
+    image: my-mlflow-base:latest
     build:
       context: .
       dockerfile: Dockerfile
-
-    image: mlflow-fastapi-app:latest
-    container_name: mlflow_fastapi_app
+    container_name: mlflow_deployer
     restart: unless-stopped
     ports:
       - "8080:8080" #expose FastAPI port
     depends_on:
       - mlflow
-    command: ["python", "src/mlflow_fastapi_docker/train_deploy.py", "--serve"]
+    command: ["python", "src/mlflow_fastapi_docker/deploy.py"]
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
@@ -37,12 +36,11 @@ services:
 
   # Model training service
   train:
-    pull_policy: never
-    image: mlflow-fastapi-app:latest
+    image: my-mlflow-base:latest
     container_name: mlflow_trainer
     depends_on:
       - mlflow
-    command: ["python", "src/mlflow_fastapi_docker/train_deploy.py", "--train"]
+    command: ["python", "src/mlflow_fastapi_docker/train.py"]
     volumes:
       - mlflow-data:/mlflow/mlruns
       - ./data:/app/data
